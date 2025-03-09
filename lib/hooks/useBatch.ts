@@ -71,9 +71,8 @@ export function useBatch() {
         throw new Error(response.error || response.result?.error);
       }
 
-      // If we can't determine success but also no explicit error
       console.warn("Unexpected response format:", response);
-      return response; // Return what we got, hoping it contains useful data
+      return response;
     } catch (err: any) {
       console.error("Error creating batch:", err);
       setError(err.message || "An error occurred while creating the batch");
