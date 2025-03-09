@@ -12,7 +12,7 @@ import {
   CardTitle,
 } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
-import DashboardLayout from "@/components/layout/DashBoardLayout";
+import DashboardWrapper from "@/components/layout/DashBoardWrapper";
 import { LayoutDashboard, Package, Thermometer, Activity } from "lucide-react";
 
 export default function Dashboard() {
@@ -64,16 +64,16 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <DashboardLayout>
+      <DashboardWrapper>
         <div className="flex items-center justify-center h-64">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
         </div>
-      </DashboardLayout>
+      </DashboardWrapper>
     );
   }
 
   return (
-    <DashboardLayout>
+    <DashboardWrapper>
       <div>
         <h1 className="text-3xl font-bold mb-8 text-gray-800">
           Berry Supply Chain Dashboard
@@ -241,6 +241,6 @@ export default function Dashboard() {
           />
         </div>
       </div>
-    </DashboardLayout>
+    </DashboardWrapper>
   );
 }

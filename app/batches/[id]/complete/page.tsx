@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
+import { useRouter } from "next/router";
 import { useBatch } from "../../../../lib/hooks/useBatch";
 import { useQuality } from "../../../../lib/hooks/useQuality";
 import {
