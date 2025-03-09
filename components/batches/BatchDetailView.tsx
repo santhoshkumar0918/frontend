@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useRouter } from "next/router";
+import { useRouter } from "next/navigation"; // Changed from next/router to next/navigation
 import { useBatch } from "../../lib/hooks/useBatch";
 import { useTemperature } from "../../lib/hooks/useTemperature";
 import { useQuality } from "../../lib/hooks/useQuality";
@@ -14,7 +14,10 @@ interface BatchDetailViewProps {
 }
 
 const BatchDetailView: React.FC<BatchDetailViewProps> = ({ batchId }) => {
+  // Always call hooks at the top level, not conditionally
   const router = useRouter();
+  const [isMounted, setIsMounted] = useState(false);
+
   const {
     loading: batchLoading,
     error: batchError,
@@ -34,7 +37,14 @@ const BatchDetailView: React.FC<BatchDetailViewProps> = ({ batchId }) => {
   } = useQuality();
   const [completing, setCompleting] = useState(false);
 
+  // Set mounted state after component mounts
   useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isMounted) return;
+
     const loadBatchData = async () => {
       await fetchBatchById(batchId);
       await fetchBatchReport(batchId);
@@ -49,9 +59,12 @@ const BatchDetailView: React.FC<BatchDetailViewProps> = ({ batchId }) => {
     fetchBatchReport,
     fetchTemperatureHistory,
     assessQuality,
+    isMounted,
   ]);
 
   const handleCompleteBatch = async () => {
+    if (!isMounted) return;
+
     if (window.confirm("Are you sure you want to complete this shipment?")) {
       setCompleting(true);
       try {
@@ -69,7 +82,8 @@ const BatchDetailView: React.FC<BatchDetailViewProps> = ({ batchId }) => {
     }
   };
 
-  if (batchLoading) {
+  // Show loading state if component is still mounting or data is loading
+  if (!isMounted || batchLoading) {
     return <div className="text-center py-10">Loading batch details...</div>;
   }
 
@@ -104,7 +118,7 @@ const BatchDetailView: React.FC<BatchDetailViewProps> = ({ batchId }) => {
         <div className="flex space-x-2">
           {isActive && (
             <>
-              <Link href={`/temperature/record?batchId=${batchId}`} passHref>
+              <Link href={`/temperature/record?batchId=${batchId}`}>
                 <Button variant="outline">Record Temperature</Button>
               </Link>
               <Button
@@ -271,15 +285,12 @@ const BatchDetailView: React.FC<BatchDetailViewProps> = ({ batchId }) => {
               </p>
               {isActive && (
                 <div className="flex flex-wrap gap-2">
-                  <Link
-                    href={`/temperature/record?batchId=${batchId}`}
-                    passHref
-                  >
+                  <Link href={`/temperature/record?batchId=${batchId}`}>
                     <Button variant="outline" size="sm">
                       Record Temperature
                     </Button>
                   </Link>
-                  <Link href={`/batches/${batchId}/complete`} passHref>
+                  <Link href={`/batches/${batchId}/complete`}>
                     <Button size="sm">Complete Shipment</Button>
                   </Link>
                 </div>
@@ -295,5 +306,4 @@ const BatchDetailView: React.FC<BatchDetailViewProps> = ({ batchId }) => {
     </div>
   );
 };
-
 export default BatchDetailView;

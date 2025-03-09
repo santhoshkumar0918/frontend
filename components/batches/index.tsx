@@ -9,7 +9,9 @@ const BatchDetailView = dynamic(() => import("./BatchDetailView"), {
   ssr: false,
 });
 
-const BatchList = dynamic(() => import("./BatchList"), { ssr: false });
+const BatchList = dynamic(() => import("./BatchList"), {
+  ssr: false,
+});
 
 // Export all components
 export { CreateBatchForm, BatchDetailView, BatchList };

@@ -29,17 +29,20 @@ export function useQuality() {
     try {
       const response = await client.manageBerryQuality(batchId);
 
-      if (response.result?.status === "completed") {
+      if (response && response.result?.status === "completed") {
         setQualityAssessment(response.result);
         return response.result;
       } else {
-        throw new Error(response.result?.error || "Failed to assess quality");
+        const errorMessage =
+          response?.result?.error || "Failed to assess quality";
+        throw new Error(errorMessage);
       }
     } catch (err: any) {
-      setError(
-        err.message ||
-          `An error occurred while assessing quality for batch ${batchId}`
-      );
+      const errorMessage =
+        err?.message ||
+        `An error occurred while assessing quality for batch ${batchId}`;
+      setError(errorMessage);
+      console.error("Quality assessment error:", errorMessage);
       return null;
     } finally {
       setLoading(false);
@@ -53,18 +56,19 @@ export function useQuality() {
     try {
       const response = await client.processRecommendations(batchId);
 
-      if (response.result?.status === "completed") {
+      if (response && response.result?.status === "completed") {
         return response.result;
       } else {
-        throw new Error(
-          response.result?.error || "Failed to process recommendations"
-        );
+        const errorMessage =
+          response?.result?.error || "Failed to process recommendations";
+        throw new Error(errorMessage);
       }
     } catch (err: any) {
-      setError(
-        err.message ||
-          `An error occurred while processing recommendations for batch ${batchId}`
-      );
+      const errorMessage =
+        err?.message ||
+        `An error occurred while processing recommendations for batch ${batchId}`;
+      setError(errorMessage);
+      console.error("Process recommendations error:", errorMessage);
       return null;
     } finally {
       setLoading(false);

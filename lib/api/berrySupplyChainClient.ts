@@ -85,7 +85,7 @@ class BerrySupplyChainClient {
     return this.handleResponse(response);
   }
 
-  // New improved method for calling connection actions
+  // Fixed method for calling connection actions
   async callConnectionAction(
     connection: string,
     action: string,
@@ -108,29 +108,39 @@ class BerrySupplyChainClient {
 
       if (!response.ok) {
         // Check if this is a "Connection not found" error
-        const errorData = await response.json().catch(() => null);
-        const errorMessage =
-          errorData?.detail ||
-          `API request failed: ${response.status} ${response.statusText}`;
+        let errorMessage = "";
+        try {
+          const errorData = await response.json();
+          errorMessage =
+            errorData?.detail ||
+            `API request failed: ${response.status} ${response.statusText}`;
+        } catch (parseError) {
+          // If we can't parse the JSON response
+          errorMessage = `API request failed: ${response.status} ${response.statusText}`;
+        }
 
         if (
           errorMessage.includes("Connection") &&
           errorMessage.includes("not found")
         ) {
-          // Try listing available connections for better error messages
-          const connections = await this.listConnections();
-          console.error(
-            `Connection '${connection}' not found. Available connections:`,
-            connections.connections
-              ? Object.keys(connections.connections)
-              : "None"
-          );
+          try {
+            // Try listing available connections for better error messages
+            const connections = await this.listConnections();
+            console.error(
+              `Connection '${connection}' not found. Available connections:`,
+              connections.connections
+                ? Object.keys(connections.connections)
+                : "None"
+            );
+          } catch (connError) {
+            console.error("Could not fetch connections list:", connError);
+          }
         }
 
         throw new Error(errorMessage);
       }
 
-      return this.handleResponse(response);
+      return await response.json();
     } catch (error) {
       console.error(`Error calling ${connection}.${action}:`, error);
       throw error;
@@ -238,11 +248,16 @@ class BerrySupplyChainClient {
   // Helper methods
   private async handleResponse(response: Response): Promise<any> {
     if (!response.ok) {
-      const errorData = await response.json().catch(() => null);
-      throw new Error(
-        errorData?.detail ||
-          `API request failed: ${response.status} ${response.statusText}`
-      );
+      let errorMessage = "";
+      try {
+        const errorData = await response.json();
+        errorMessage =
+          errorData?.detail ||
+          `API request failed: ${response.status} ${response.statusText}`;
+      } catch (parseError) {
+        errorMessage = `API request failed: ${response.status} ${response.statusText}`;
+      }
+      throw new Error(errorMessage);
     }
     return response.json();
   }
