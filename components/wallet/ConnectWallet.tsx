@@ -6,6 +6,7 @@ import {
   useDisconnect,
   useBalance,
   useChainId,
+  useSwitchChain,
 } from "wagmi";
 import { injected } from "wagmi/connectors";
 import { useState, useEffect } from "react";
@@ -16,36 +17,17 @@ import {
   Copy,
   Power,
   User,
+  AlertTriangle,
 } from "lucide-react";
-
+import {
+  sonicBlazeTestnet,
+  addSonicBlazeTestnet,
+  switchToSonicBlazeTestnet,
+} from "@/config";
 const CHAIN_NAMES: { [key: number]: string } = {
-  57054: "Sonic Blaze Testnet", // Add Sonic Blaze Testnet
-  // Add other chains as needed
-};
-
-// Function to add Sonic Blaze Testnet to MetaMask
-const addSonicBlazeTestnet = async () => {
-  try {
-    await window.ethereum.request({
-      method: "wallet_addEthereumChain",
-      params: [
-        {
-          chainId: "57054",
-          chainName: "Sonic Blaze Testnet",
-          nativeCurrency: {
-            name: "Sonic",
-            symbol: "S",
-            decimals: 18,
-          },
-          rpcUrls: ["https://rpc.blaze.soniclabs.com"],
-          blockExplorerUrls: ["https://blaze.soniclabs.com"],
-        },
-      ],
-    });
-    console.log("Sonic Blaze Testnet added to MetaMask!");
-  } catch (error) {
-    console.error("Failed to add Sonic Blaze Testnet:", error);
-  }
+  57054: "Sonic Blaze Testnet",
+  1: "Ethereum Mainnet",
+  11155111: "Sepolia Testnet",
 };
 
 export default function ConnectWallet() {
@@ -54,32 +36,40 @@ export default function ConnectWallet() {
   const { connect } = useConnect();
   const { disconnect } = useDisconnect();
   const chainId = useChainId();
+  const { switchChain } = useSwitchChain();
   const { data: balance } = useBalance({
     address: address as `0x${string}`,
   });
-
   const [isOpen, setIsOpen] = useState(false);
+  const [isCorrectNetwork, setIsCorrectNetwork] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
+  useEffect(() => {
+    setIsCorrectNetwork(chainId === sonicBlazeTestnet.id);
+  }, [chainId]);
+
   const handleConnect = async () => {
     try {
-      // Add Sonic Blaze Testnet if not already added
-      await addSonicBlazeTestnet();
-
-      // Connect wallet
       connect({
         connector: injected({ target: "metaMask" }),
       });
-
-      // Check if connected to Sonic Blaze Testnet
-      if (chainId !== 57054) {
-        alert("Please switch to Sonic Blaze Testnet to proceed.");
-      }
     } catch (error) {
       console.error("Failed to connect wallet:", error);
+    }
+  };
+
+  const handleSwitchNetwork = async () => {
+    try {
+      if (switchChain) {
+        switchChain({ chainId: sonicBlazeTestnet.id });
+      } else {
+        await switchToSonicBlazeTestnet();
+      }
+    } catch (error) {
+      console.error("Failed to switch network:", error);
     }
   };
 
@@ -91,12 +81,16 @@ export default function ConnectWallet() {
   const copyAddress = () => {
     if (address) {
       navigator.clipboard.writeText(address);
+      // Optional: Add toast or notification that address was copied
     }
   };
 
   const openExplorer = () => {
     if (address) {
-      window.open(`https://blaze.soniclabs.com/address/${address}`, "_blank");
+      window.open(
+        `${sonicBlazeTestnet.blockExplorers.default.url}/address/${address}`,
+        "_blank"
+      );
     }
   };
 
@@ -120,40 +114,48 @@ export default function ConnectWallet() {
     <div className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-all relative"
+        className="flex items-center gap-2 px-4 py-2 bg-gray-800 rounded-lg hover:bg-gray-700 transition-all text-white"
       >
-        <User className="w-5 h-5 text-gray-600" />
-        <div className="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-green-500 border-2 border-white" />
+        <User className="w-5 h-5" />
+        <span className="font-medium hidden sm:inline">
+          {formatAddress(address)}
+        </span>
+        {!isCorrectNetwork && (
+          <AlertTriangle className="w-4 h-4 text-yellow-400" />
+        )}
+        <ChevronDown className="w-4 h-4" />
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-72 bg-white rounded-xl shadow-xl border border-gray-100 p-2 z-50">
+        <div className="absolute right-0 mt-2 w-72 bg-gray-800 rounded-xl shadow-xl border border-gray-700 p-2 z-50">
           <div className="p-3 space-y-3">
             <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-500">
+              <span className="text-sm text-gray-400">
                 Connected with MetaMask
               </span>
               <button
                 onClick={() => disconnect()}
-                className="flex items-center gap-1 text-red-500 hover:text-red-600 text-sm font-medium"
+                className="flex items-center gap-1 text-red-400 hover:text-red-300 text-sm font-medium"
               >
                 <Power className="w-4 h-4" />
                 Disconnect
               </button>
             </div>
 
-            <div className="flex items-center justify-between bg-gray-50 p-3 rounded-lg">
+            <div className="flex items-center justify-between bg-gray-700 p-3 rounded-lg">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
-                  <Wallet className="w-4 h-4 text-blue-600" />
+                <div className="w-8 h-8 rounded-full bg-blue-900 flex items-center justify-center">
+                  <Wallet className="w-4 h-4 text-blue-400" />
                 </div>
                 <div>
-                  <p className="font-medium">
+                  <p className="font-medium text-white">
                     {address ? formatAddress(address) : ""}
                   </p>
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm text-gray-400">
                     {balance?.formatted
-                      ? `${balance.formatted.slice(0, 7)} ${balance.symbol}`
+                      ? `${parseFloat(balance.formatted).toFixed(4)} ${
+                          balance.symbol
+                        }`
                       : "Loading..."}
                   </p>
                 </div>
@@ -163,26 +165,39 @@ export default function ConnectWallet() {
             <div className="flex gap-2">
               <button
                 onClick={copyAddress}
-                className="flex items-center gap-1 px-3 py-2 text-sm text-gray-600 hover:text-gray-900 bg-gray-50 rounded-lg flex-1"
+                className="flex items-center gap-1 px-3 py-2 text-sm text-gray-300 hover:text-white bg-gray-700 rounded-lg flex-1"
               >
                 <Copy className="w-4 h-4" />
                 Copy Address
               </button>
               <button
                 onClick={openExplorer}
-                className="flex items-center gap-1 px-3 py-2 text-sm text-gray-600 hover:text-gray-900 bg-gray-50 rounded-lg flex-1"
+                className="flex items-center gap-1 px-3 py-2 text-sm text-gray-300 hover:text-white bg-gray-700 rounded-lg flex-1"
               >
                 <ExternalLink className="w-4 h-4" />
-                View on Explorer
+                View Explorer
               </button>
             </div>
 
-            <div className="pt-2 border-t">
+            <div className="pt-2 border-t border-gray-700">
               <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-500">Network</span>
-                <span className="font-medium">
-                  {CHAIN_NAMES[chainId] || `Chain ${chainId}`}
-                </span>
+                <span className="text-gray-400">Network</span>
+                <div className="flex items-center">
+                  {isCorrectNetwork ? (
+                    <span className="text-green-400 font-medium flex items-center">
+                      <span className="w-2 h-2 bg-green-400 rounded-full mr-2"></span>
+                      {CHAIN_NAMES[chainId] || `Chain ${chainId}`}
+                    </span>
+                  ) : (
+                    <button
+                      onClick={handleSwitchNetwork}
+                      className="text-yellow-400 font-medium flex items-center hover:text-yellow-300"
+                    >
+                      <AlertTriangle className="w-4 h-4 mr-1" />
+                      Switch to Sonic Testnet
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           </div>
