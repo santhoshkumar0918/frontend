@@ -22,7 +22,21 @@ export default function DashboardWrapper({ children }: DashboardWrapperProps) {
     const initDashboard = async () => {
       try {
         setLoading(true);
-        await loadAndStartAgent();
+        const result = await loadAndStartAgent();
+
+        if (result.success) {
+          // Check if sonic connection exists
+          if (result.connections && !result.connections.sonic) {
+            setError(
+              "The 'sonic' connection is missing. Check your agent configuration."
+            );
+          } else {
+            // All good!
+            setLoading(false);
+          }
+        } else {
+          setError(result.message);
+        }
         setLoading(false);
       } catch (err) {
         console.error("Failed to initialize dashboard:", err);
