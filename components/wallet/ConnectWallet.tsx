@@ -19,15 +19,69 @@ import {
   User,
   AlertTriangle,
 } from "lucide-react";
-import {
-  sonicBlazeTestnet,
-  addSonicBlazeTestnet,
-  switchToSonicBlazeTestnet,
-} from "@/config";
+
+// Define Sonic Blaze Testnet constants
+const SONIC_BLAZE_CHAIN_ID = 57054;
+
 const CHAIN_NAMES: { [key: number]: string } = {
   57054: "Sonic Blaze Testnet",
   1: "Ethereum Mainnet",
   11155111: "Sepolia Testnet",
+};
+
+// Function to add Sonic Blaze Testnet to MetaMask
+const addSonicBlazeTestnet = async () => {
+  if (!window.ethereum) {
+    console.error("MetaMask not detected");
+    return false;
+  }
+
+  try {
+    await window.ethereum.request({
+      method: "wallet_addEthereumChain",
+      params: [
+        {
+          chainId: `0x${SONIC_BLAZE_CHAIN_ID.toString(16)}`, // Convert to hex
+          chainName: "Sonic Blaze Testnet",
+          nativeCurrency: {
+            name: "Sonic",
+            symbol: "S",
+            decimals: 18,
+          },
+          rpcUrls: ["https://rpc.blaze.soniclabs.com"],
+          blockExplorerUrls: ["https://blaze.soniclabs.com"],
+        },
+      ],
+    });
+    console.log("Sonic Blaze Testnet added to MetaMask!");
+    return true;
+  } catch (error) {
+    console.error("Failed to add Sonic Blaze Testnet:", error);
+    return false;
+  }
+};
+
+// Function to switch to Sonic Blaze Testnet
+const switchToSonicBlazeTestnet = async () => {
+  if (!window.ethereum) {
+    console.error("MetaMask not detected");
+    return false;
+  }
+
+  try {
+    await window.ethereum.request({
+      method: "wallet_switchEthereumChain",
+      params: [{ chainId: `0x${SONIC_BLAZE_CHAIN_ID.toString(16)}` }],
+    });
+    return true;
+  } catch (error: any) {
+    // This error code indicates that the chain has not been added to MetaMask
+    if (error.code === 4902) {
+      return addSonicBlazeTestnet();
+    }
+    console.error("Failed to switch to Sonic Blaze Testnet:", error);
+    return false;
+  }
 };
 
 export default function ConnectWallet() {
@@ -45,16 +99,17 @@ export default function ConnectWallet() {
 
   useEffect(() => {
     setMounted(true);
-  }, []);
-
-  useEffect(() => {
-    setIsCorrectNetwork(chainId === sonicBlazeTestnet.id);
+    setIsCorrectNetwork(chainId === SONIC_BLAZE_CHAIN_ID);
   }, [chainId]);
 
   const handleConnect = async () => {
     try {
+      // First, try to add the network
+      await addSonicBlazeTestnet();
+
+      // Then connect
       connect({
-        connector: injected({ target: "metaMask" }),
+        connector: injected(),
       });
     } catch (error) {
       console.error("Failed to connect wallet:", error);
@@ -64,10 +119,11 @@ export default function ConnectWallet() {
   const handleSwitchNetwork = async () => {
     try {
       if (switchChain) {
-        switchChain({ chainId: sonicBlazeTestnet.id });
+        await switchChain({ chainId: SONIC_BLAZE_CHAIN_ID });
       } else {
         await switchToSonicBlazeTestnet();
       }
+      setIsCorrectNetwork(true);
     } catch (error) {
       console.error("Failed to switch network:", error);
     }
@@ -81,16 +137,13 @@ export default function ConnectWallet() {
   const copyAddress = () => {
     if (address) {
       navigator.clipboard.writeText(address);
-      // Optional: Add toast or notification that address was copied
+      // You could add a toast notification here
     }
   };
 
   const openExplorer = () => {
     if (address) {
-      window.open(
-        `${sonicBlazeTestnet.blockExplorers.default.url}/address/${address}`,
-        "_blank"
-      );
+      window.open(`https://blaze.soniclabs.com/address/${address}`, "_blank");
     }
   };
 

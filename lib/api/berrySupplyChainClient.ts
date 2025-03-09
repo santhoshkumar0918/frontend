@@ -85,135 +85,110 @@ class BerrySupplyChainClient {
     return this.handleResponse(response);
   }
 
+  // New improved method for calling connection actions
+  async callConnectionAction(
+    connection: string,
+    action: string,
+    params: Record<string, any> = {}
+  ): Promise<any> {
+    try {
+      console.log(`Calling ${connection}.${action} with params:`, params);
+
+      const response = await fetch(endpoints.actionUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          connection,
+          action,
+          params,
+        }),
+      });
+
+      if (!response.ok) {
+        // Check if this is a "Connection not found" error
+        const errorData = await response.json().catch(() => null);
+        const errorMessage =
+          errorData?.detail ||
+          `API request failed: ${response.status} ${response.statusText}`;
+
+        if (
+          errorMessage.includes("Connection") &&
+          errorMessage.includes("not found")
+        ) {
+          // Try listing available connections for better error messages
+          const connections = await this.listConnections();
+          console.error(
+            `Connection '${connection}' not found. Available connections:`,
+            connections.connections
+              ? Object.keys(connections.connections)
+              : "None"
+          );
+        }
+
+        throw new Error(errorMessage);
+      }
+
+      return this.handleResponse(response);
+    } catch (error) {
+      console.error(`Error calling ${connection}.${action}:`, error);
+      throw error;
+    }
+  }
+
   // Berry temperature monitoring methods
   async monitorTemperature(
     batchId: string,
     temperature: number,
     location: string
   ): Promise<any> {
-    const response = await fetch(endpoints.monitorTemperatureUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        connection: "sonic",
-        action: "monitor-berry-temperature",
-        params: {
-          batch_id: parseInt(batchId),
-          temperature,
-          location,
-        },
-      }),
+    return this.callConnectionAction("sonic", "monitor-berry-temperature", {
+      batch_id: parseInt(batchId),
+      temperature,
+      location,
     });
-    return this.handleResponse(response);
   }
 
   async manageBerryQuality(batchId: string): Promise<any> {
-    const response = await fetch(endpoints.manageBerryQualityUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        connection: "sonic",
-        action: "manage-berry-quality",
-        params: {
-          batch_id: parseInt(batchId),
-        },
-      }),
+    return this.callConnectionAction("sonic", "manage-berry-quality", {
+      batch_id: parseInt(batchId),
     });
-    return this.handleResponse(response);
   }
 
   async processRecommendations(batchId: string): Promise<any> {
-    const response = await fetch(endpoints.processRecommendationsUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        connection: "sonic",
-        action: "process-agent-recommendations",
-        params: {
-          batch_id: parseInt(batchId),
-        },
-      }),
+    return this.callConnectionAction("sonic", "process-agent-recommendations", {
+      batch_id: parseInt(batchId),
     });
-    return this.handleResponse(response);
   }
 
   // Batch management methods
   async createBatch(berryType: string): Promise<any> {
-    const response = await fetch(endpoints.createBatchUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        connection: "sonic",
-        action: "manage-batch-lifecycle",
-        params: {
-          action: "create",
-          berry_type: berryType,
-        },
-      }),
+    return this.callConnectionAction("sonic", "manage-batch-lifecycle", {
+      action: "create",
+      berry_type: berryType,
     });
-    return this.handleResponse(response);
   }
 
   async getBatchStatus(batchId: string): Promise<any> {
-    const response = await fetch(endpoints.getBatchStatusUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        connection: "sonic",
-        action: "manage-batch-lifecycle",
-        params: {
-          action: "status",
-          batch_id: parseInt(batchId),
-        },
-      }),
+    return this.callConnectionAction("sonic", "manage-batch-lifecycle", {
+      action: "status",
+      batch_id: parseInt(batchId),
     });
-    return this.handleResponse(response);
   }
 
   async getBatchReport(batchId: string): Promise<any> {
-    const response = await fetch(endpoints.getBatchReportUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        connection: "sonic",
-        action: "manage-batch-lifecycle",
-        params: {
-          action: "report",
-          batch_id: parseInt(batchId),
-        },
-      }),
+    return this.callConnectionAction("sonic", "manage-batch-lifecycle", {
+      action: "report",
+      batch_id: parseInt(batchId),
     });
-    return this.handleResponse(response);
   }
 
   async completeBatch(batchId: string): Promise<any> {
-    const response = await fetch(endpoints.completeBatchUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        connection: "sonic",
-        action: "manage-batch-lifecycle",
-        params: {
-          action: "complete",
-          batch_id: parseInt(batchId),
-        },
-      }),
+    return this.callConnectionAction("sonic", "manage-batch-lifecycle", {
+      action: "complete",
+      batch_id: parseInt(batchId),
     });
-    return this.handleResponse(response);
   }
 
   async manageBatchSequence(
@@ -222,49 +197,35 @@ class BerrySupplyChainClient {
     locations: string[],
     completeShipment: boolean
   ): Promise<any> {
-    const response = await fetch(endpoints.batchSequenceUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        connection: "sonic",
-        action: "manage-batch-sequence",
-        params: {
-          berry_type: berryType,
-          temperatures,
-          locations,
-          complete_shipment: completeShipment,
-        },
-      }),
+    return this.callConnectionAction("sonic", "manage-batch-sequence", {
+      berry_type: berryType,
+      temperatures,
+      locations,
+      complete_shipment: completeShipment,
     });
-    return this.handleResponse(response);
   }
 
   // System health method
   async getSystemHealth(resetCounters: boolean = false): Promise<any> {
-    const response = await fetch(endpoints.healthCheckUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        connection: "sonic",
-        action: "system-health-check",
-        params: {
-          reset_counters: resetCounters,
-        },
-      }),
+    return this.callConnectionAction("sonic", "system-health-check", {
+      reset_counters: resetCounters,
     });
-    return this.handleResponse(response);
   }
 
   // Agent control methods
   async startAgent(): Promise<{ status: string; message: string }> {
-    const response = await fetch(endpoints.startAgentUrl, {
-      method: "POST",
-    });
-    return this.handleResponse(response);
+    try {
+      const response = await fetch(endpoints.startAgentUrl, {
+        method: "POST",
+      });
+      return this.handleResponse(response);
+    } catch (error: any) {
+      // If agent is already running, consider it a success
+      if (error.message && error.message.includes("Agent already running")) {
+        return { status: "success", message: "Agent is already running" };
+      }
+      throw error;
+    }
   }
 
   async stopAgent(): Promise<{ status: string; message: string }> {
@@ -288,20 +249,9 @@ class BerrySupplyChainClient {
 
   // Utility methods
   async getAllBatches(): Promise<any[]> {
-    const response = await fetch(endpoints.getBatchStatusUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        connection: "sonic",
-        action: "manage-batch-lifecycle",
-        params: {
-          action: "list",
-        },
-      }),
+    return this.callConnectionAction("sonic", "manage-batch-lifecycle", {
+      action: "list",
     });
-    return this.handleResponse(response);
   }
 
   async getTemperatureHistory(batchId: string): Promise<any[]> {
