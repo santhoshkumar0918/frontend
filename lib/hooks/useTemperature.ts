@@ -23,8 +23,20 @@ export function useTemperature() {
       setError(null);
 
       try {
+        // Validate batchId before making the API call
+        if (!batchId) {
+          throw new Error("Batch ID is required");
+        }
+
+        // Ensure batchId is a valid number
+        const batchIdNum = parseInt(batchId, 10);
+        if (isNaN(batchIdNum)) {
+          throw new Error("Invalid Batch ID format");
+        }
+
+        // Use the numeric batch ID in the API call
         const response = await client.monitorTemperature(
-          batchId,
+          batchIdNum.toString(), // Convert back to string for consistency with API
           temperature,
           location
         );
@@ -53,8 +65,19 @@ export function useTemperature() {
     setError(null);
 
     try {
+      // Validate batchId before making the API call
+      if (!batchId) {
+        throw new Error("Batch ID is required");
+      }
+
+      // Ensure batchId is a valid number
+      const batchIdNum = parseInt(batchId, 10);
+      if (isNaN(batchIdNum)) {
+        throw new Error("Invalid Batch ID format");
+      }
+
       // We'll get the temperature history from the batch report
-      const batchReport = await client.getBatchReport(batchId);
+      const batchReport = await client.getBatchReport(batchIdNum.toString());
 
       if (batchReport.result?.status === "completed") {
         const history = batchReport.result?.temperature_stats?.readings || [];

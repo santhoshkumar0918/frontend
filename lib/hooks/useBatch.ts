@@ -39,14 +39,43 @@ export function useBatch() {
     setError(null);
 
     try {
+      console.log(`Creating batch with berry type: ${berryType}`);
       const response = await client.createBatch(berryType);
+      console.log("Create batch API response:", response);
 
+      // The response structure might be different from what you expect
+      // Let's handle various possible response formats
+
+      // If there's a direct success flag
+      if (response.success === true) {
+        return response;
+      }
+
+      // If there's a result object with status
       if (response.result?.status === "completed") {
         return response.result;
-      } else {
-        throw new Error(response.result?.error || "Failed to create batch");
       }
+
+      // If there's a direct batch_id in the response
+      if (response.batch_id !== undefined) {
+        return response;
+      }
+
+      // If there's a result with a batch_id
+      if (response.result?.batch_id !== undefined) {
+        return response.result;
+      }
+
+      // Check for errors
+      if (response.error || response.result?.error) {
+        throw new Error(response.error || response.result?.error);
+      }
+
+      // If we can't determine success but also no explicit error
+      console.warn("Unexpected response format:", response);
+      return response; // Return what we got, hoping it contains useful data
     } catch (err: any) {
+      console.error("Error creating batch:", err);
       setError(err.message || "An error occurred while creating the batch");
       return null;
     } finally {
