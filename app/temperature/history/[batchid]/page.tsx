@@ -5,8 +5,7 @@ import { useParams } from "next/navigation";
 import { useTemperature } from "@/lib/hooks/useTemperature";
 import { useBatch } from "@/lib/hooks/useBatch";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import TemperatureChart from "@/components/temperature/TemperatureChart";
-import TemperatureTable from "@/components/temperature/TemperatureTable";
+import { TemperatureChart, TemperatureTable } from "@/components/temperature";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 

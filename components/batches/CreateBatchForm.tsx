@@ -1,5 +1,7 @@
-import React, { useState } from "react";
-import { useRouter } from "next/router";
+"use client";
+
+import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation"; // Change from next/router to next/navigation
 import {
   Card,
   CardContent,
@@ -9,16 +11,22 @@ import {
   CardFooter,
 } from "../ui/card";
 import { Button } from "../ui/button";
-// import { Input } from "../ui/input";
 import { useBatch } from "../../lib/hooks/useBatch";
 
 const CreateBatchForm: React.FC = () => {
+  // Add state to track if component is mounted
+  const [isMounted, setIsMounted] = useState(false);
   const router = useRouter();
   const { createBatch, loading, error } = useBatch();
   const [berryType, setBerryType] = useState<string>("Strawberry");
   const [formError, setFormError] = useState<string | null>(null);
 
   const berryTypes = ["Strawberry", "Blueberry", "Raspberry", "Blackberry"];
+
+  // Set isMounted to true after component mounts
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,12 +39,18 @@ const CreateBatchForm: React.FC = () => {
 
     try {
       const result = await createBatch(berryType);
-      if (result) {
-        // Navigate to the new batch's page
+      if (result && isMounted) {
+        // Only navigate if the component is mounted
         router.push(`/batches/${result.batch_id}`);
       }
     } catch (err: any) {
       setFormError(err.message || "Failed to create batch");
+    }
+  };
+
+  const handleCancel = () => {
+    if (isMounted) {
+      router.push("/batches");
     }
   };
 
@@ -88,7 +102,7 @@ const CreateBatchForm: React.FC = () => {
         <Button
           type="button"
           variant="outline"
-          onClick={() => router.push("/batches")}
+          onClick={handleCancel}
           disabled={loading}
         >
           Cancel

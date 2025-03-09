@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import TemperatureForm from "../../../components/temperature/TemperatureForm";
+import TemperatureForm from "../../../components/temperature";
 
 export default function RecordTemperaturePage() {
   return (
