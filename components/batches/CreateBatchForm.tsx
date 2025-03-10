@@ -7,7 +7,6 @@ import {
   CardHeader,
   CardTitle,
   CardDescription,
-  CardFooter,
 } from "../ui/card";
 import { Button } from "../ui/button";
 import { useBatch } from "../../lib/hooks/useBatch";
@@ -39,15 +38,22 @@ const CreateBatchForm: React.FC = () => {
       console.log("Create batch result:", result);
 
       if (result && isMounted) {
-        // Handle different possible response structures
+        // Extract batch ID from different possible response structures
         const batchId =
-          result.batch_id || (result.result && result.result.batch_id);
+          result.batch_id ||
+          (result.result && result.result.batch_id) ||
+          (typeof result === "object" && "batch_id" in result
+            ? result.batch_id
+            : null);
 
         console.log("Extracted batch ID:", batchId);
 
         if (batchId) {
-          // Use proper template literal syntax with backticks
-          router.push(`/batches/${batchId}`);
+          // Clear any cached data before navigation
+          sessionStorage.removeItem("lastBatchData");
+
+          // Force a full page navigation instead of client-side routing
+          window.location.href = `/batches/${batchId}`;
         } else {
           setFormError("Created batch but couldn't determine batch ID");
           console.error("Unexpected response format:", result);
