@@ -1,7 +1,6 @@
 "use client";
-
 import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation"; // Change from next/router to next/navigation
+import { useRouter } from "next/navigation";
 import {
   Card,
   CardContent,
@@ -14,16 +13,13 @@ import { Button } from "../ui/button";
 import { useBatch } from "../../lib/hooks/useBatch";
 
 const CreateBatchForm: React.FC = () => {
-  // Add state to track if component is mounted
   const [isMounted, setIsMounted] = useState(false);
   const router = useRouter();
   const { createBatch, loading, error } = useBatch();
   const [berryType, setBerryType] = useState<string>("Strawberry");
   const [formError, setFormError] = useState<string | null>(null);
-
   const berryTypes = ["Strawberry", "Blueberry", "Raspberry", "Blackberry"];
 
-  // Set isMounted to true after component mounts
   useEffect(() => {
     setIsMounted(true);
   }, []);
@@ -38,12 +34,27 @@ const CreateBatchForm: React.FC = () => {
     }
 
     try {
+      console.log("Submitting with berry type:", berryType);
       const result = await createBatch(berryType);
+      console.log("Create batch result:", result);
+
       if (result && isMounted) {
-        // Only navigate if the component is mounted
-        router.push(`/batches/${result.batch_id}`);
+        // Handle different possible response structures
+        const batchId =
+          result.batch_id || (result.result && result.result.batch_id);
+
+        console.log("Extracted batch ID:", batchId);
+
+        if (batchId) {
+          // Use proper template literal syntax with backticks
+          router.push(`/batches/${batchId}`);
+        } else {
+          setFormError("Created batch but couldn't determine batch ID");
+          console.error("Unexpected response format:", result);
+        }
       }
     } catch (err: any) {
+      console.error("Error in handleSubmit:", err);
       setFormError(err.message || "Failed to create batch");
     }
   };
@@ -83,7 +94,6 @@ const CreateBatchForm: React.FC = () => {
               ))}
             </select>
           </div>
-
           <div className="space-y-2">
             <label htmlFor="tempRange" className="block text-sm font-medium">
               Optimal Temperature Range
@@ -92,25 +102,24 @@ const CreateBatchForm: React.FC = () => {
               0°C - 4°C (Non-configurable for safety reasons)
             </div>
           </div>
-
           {(error || formError) && (
             <div className="text-red-500 text-sm">{error || formError}</div>
           )}
+          <div className="flex justify-between mt-6 pt-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleCancel}
+              disabled={loading}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={loading}>
+              {loading ? "Creating..." : "Create Batch"}
+            </Button>
+          </div>
         </form>
       </CardContent>
-      <CardFooter className="flex justify-between">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={handleCancel}
-          disabled={loading}
-        >
-          Cancel
-        </Button>
-        <Button type="submit" onClick={handleSubmit} disabled={loading}>
-          {loading ? "Creating..." : "Create Batch"}
-        </Button>
-      </CardFooter>
     </Card>
   );
 };
