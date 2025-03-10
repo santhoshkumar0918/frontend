@@ -55,7 +55,7 @@ const Sidebar: React.FC = () => {
     <div
       className={`${
         collapsed ? "w-20" : "w-64"
-      } bg-gray-950 text-white h-full fixed left-0 top-11vh transition-all duration-300 shadow-xl z-40`}
+      } bg-gray-950 text-white h-[calc(100vh-4rem)] fixed left-0 top-20 transition-all duration-300 shadow-xl z-40`}
     >
       <div className="flex justify-end p-2">
         <button

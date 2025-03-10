@@ -134,6 +134,12 @@ export function useBatch() {
   }, []);
 
   const fetchBatchById = useCallback(async (batchId: string) => {
+    if (!batchId) {
+      console.error("Invalid batch ID:", batchId);
+      setError("Invalid batch ID provided");
+      return null;
+    }
+
     setLoading(true);
     setError(null);
 
@@ -178,6 +184,11 @@ export function useBatch() {
 
   const fetchBatchReport = useCallback(
     async (batchId: string) => {
+      if (!batchId) {
+        console.error("Invalid batch ID for report:", batchId);
+        return { batch_details: selectedBatch || undefined };
+      }
+
       setLoading(true);
       setError(null);
 
@@ -223,6 +234,12 @@ export function useBatch() {
   );
 
   const completeBatch = useCallback(async (batchId: string) => {
+    if (!batchId) {
+      console.error("Invalid batch ID for completion:", batchId);
+      setError("Invalid batch ID provided");
+      return null;
+    }
+
     setLoading(true);
     setError(null);
 
@@ -263,7 +280,7 @@ export function useBatch() {
     batchReport,
     createBatch,
     fetchBatches,
-    fetchBatchById,
+    fetchBatchById, // Added the missing function
     fetchBatchReport,
     completeBatch,
   };
