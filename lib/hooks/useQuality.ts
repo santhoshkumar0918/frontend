@@ -12,6 +12,8 @@ interface QualityAssessment {
   recommended_action?: string;
   action_description?: string;
   timestamp?: string;
+  success?: boolean;
+  error?: string;
 }
 
 export function useQuality() {
@@ -27,16 +29,35 @@ export function useQuality() {
     setError(null);
 
     try {
+      console.log(`Assessing quality for batch ${batchId}...`);
       const response = await client.manageBerryQuality(batchId);
+      console.log("Quality assessment response:", response);
 
-      if (response && response.result?.status === "completed") {
+      if (!response) {
+        throw new Error("No response received from quality assessment");
+      }
+
+      if (response.error) {
+        throw new Error(response.error);
+      }
+
+      if (response.result) {
+        if (response.result.status && response.result.status !== "completed") {
+          throw new Error(
+            response.result.error || "Quality assessment not completed"
+          );
+        }
+
         setQualityAssessment(response.result);
         return response.result;
-      } else {
-        const errorMessage =
-          response?.result?.error || "Failed to assess quality";
-        throw new Error(errorMessage);
       }
+
+      if (response.success === true) {
+        setQualityAssessment(response);
+        return response;
+      }
+
+      throw new Error("Failed to assess quality: Unexpected response format");
     } catch (err: any) {
       const errorMessage =
         err?.message ||
@@ -54,15 +75,37 @@ export function useQuality() {
     setError(null);
 
     try {
+      console.log(`Processing recommendations for batch ${batchId}...`);
       const response = await client.processRecommendations(batchId);
+      console.log("Process recommendations response:", response);
 
-      if (response && response.result?.status === "completed") {
-        return response.result;
-      } else {
-        const errorMessage =
-          response?.result?.error || "Failed to process recommendations";
-        throw new Error(errorMessage);
+      if (!response) {
+        throw new Error("No response received from recommendations process");
       }
+      if (response.error) {
+        throw new Error(response.error);
+      }
+
+      // Check if response has a result property
+      if (response.result) {
+        // Check if result has a status field and it's not completed
+        if (response.result.status && response.result.status !== "completed") {
+          throw new Error(
+            response.result.error || "Failed to process recommendations"
+          );
+        }
+        return response.result;
+      }
+
+      // If the response itself is the result (has success field)
+      if (response.success === true) {
+        return response;
+      }
+
+      // If no clear result structure, throw an error
+      throw new Error(
+        "Failed to process recommendations: Unexpected response format"
+      );
     } catch (err: any) {
       const errorMessage =
         err?.message ||
@@ -88,7 +131,8 @@ export function useQuality() {
   }, []);
 
   const getQualityCategory = useCallback((score: number | undefined) => {
-    if (!score && score !== 0) return { category: "Unknown", color: "gray" };
+    if (score === undefined || score === null)
+      return { category: "Unknown", color: "gray" };
 
     if (score >= 90) return { category: "Excellent", color: "green" };
     if (score >= 80) return { category: "Good", color: "teal" };
