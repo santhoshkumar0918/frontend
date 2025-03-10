@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useBatch } from "../../lib/hooks/useBatch";
 import { useTemperature } from "../../lib/hooks/useTemperature";
@@ -19,7 +19,8 @@ const BatchDetailView: React.FC<BatchDetailViewProps> = ({ batchId }) => {
   const [isMounted, setIsMounted] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [retryCount, setRetryCount] = useState(0);
+  const [retryAttempt, setRetryAttempt] = useState(0);
+  const [dataLoaded, setDataLoaded] = useState(false);
   const MAX_RETRIES = 3;
 
   const {
@@ -44,92 +45,74 @@ const BatchDetailView: React.FC<BatchDetailViewProps> = ({ batchId }) => {
 
   const [completing, setCompleting] = useState(false);
 
+  // Initial mount effect
   useEffect(() => {
     setIsMounted(true);
+    return () => {
+      setIsMounted(false);
+    };
   }, []);
 
-  useEffect(() => {
-    if (!isMounted) return;
+  // Load data function (defined outside useEffect to prevent recreation)
+  const loadBatchData = useCallback(async () => {
+    if (!isMounted || dataLoaded) return;
 
-    let isCancelled = false;
+    console.log(
+      `Loading data for batch ID: ${batchId} (Attempt ${
+        retryAttempt + 1
+      }/${MAX_RETRIES})`
+    );
     setIsLoading(true);
     setLoadError(null);
 
-    const loadBatchData = async () => {
-      try {
-        console.log(
-          `Loading data for batch ID: ${batchId} (Attempt ${retryCount + 1})`
-        );
+    try {
+      // Try to fetch the batch data
+      console.log(`Fetching batch with ID: ${batchId}`);
+      const batchResult = await fetchBatchById(batchId);
 
-        // Try to fetch the batch data
-        const batchResult = await fetchBatchById(batchId);
-
-        // If batch fetch failed and we haven't exceeded max retries
-        if (!batchResult && retryCount < MAX_RETRIES) {
+      // If batch fetch failed and we haven't exceeded max retries
+      if (!batchResult) {
+        if (retryAttempt < MAX_RETRIES - 1) {
           console.log(
-            `Batch fetch failed, retrying... (${retryCount + 1}/${MAX_RETRIES})`
+            `Batch fetch failed, will retry in ${
+              2000 * (retryAttempt + 1)
+            }ms...`
           );
-          // Schedule retry after delay
-          if (!isCancelled) {
-            setRetryCount((prev) => prev + 1);
-          }
+          setRetryAttempt((prev) => prev + 1);
+          setIsLoading(false);
           return;
-        }
-
-        // If batch fetch failed after all retries
-        if (!batchResult) {
+        } else {
           throw new Error(
             `Failed to fetch batch with ID ${batchId} after ${MAX_RETRIES} attempts`
           );
         }
-
-        // Only proceed with additional data fetching if batch data was found
-        if (!isCancelled) {
-          console.log(
-            `Successfully fetched batch ${batchId}, fetching additional data...`
-          );
-
-          // Use Promise.allSettled to fetch all related data in parallel
-          // This ensures that if one fetch fails, others will still complete
-          const [reportResult, tempHistoryResult, qualityResult] =
-            await Promise.allSettled([
-              fetchBatchReport(batchId),
-              fetchTemperatureHistory(batchId),
-              assessQuality(batchId),
-            ]);
-
-          // Log the results of each fetch
-          console.log("Batch report fetch result:", reportResult);
-          console.log("Temperature history fetch result:", tempHistoryResult);
-          console.log("Quality assessment result:", qualityResult);
-
-          // Complete loading
-          if (!isCancelled) {
-            setIsLoading(false);
-            setLoadError(null);
-          }
-        }
-      } catch (error) {
-        console.error("Error loading batch data:", error);
-        if (!isCancelled) {
-          setLoadError(
-            error instanceof Error
-              ? error.message
-              : "Unknown error loading batch data"
-          );
-          setIsLoading(false);
-        }
       }
-    };
 
-    // Short delay before loading to allow for any state updates
-    const timeoutId = setTimeout(loadBatchData, 500);
+      // Fetch additional data
+      console.log(
+        `Successfully fetched batch ${batchId}, fetching additional data...`
+      );
 
-    // Cleanup function
-    return () => {
-      isCancelled = true;
-      clearTimeout(timeoutId);
-    };
+      // Use Promise.all to fetch all related data in parallel
+      await Promise.all([
+        fetchBatchReport(batchId),
+        fetchTemperatureHistory(batchId),
+        assessQuality(batchId),
+      ]);
+
+      // Mark data as loaded to prevent further fetches
+      setDataLoaded(true);
+      setIsLoading(false);
+      setLoadError(null);
+    } catch (error) {
+      console.error("Error loading batch data:", error);
+      setLoadError(
+        error instanceof Error
+          ? error.message
+          : "Unknown error loading batch data"
+      );
+      setIsLoading(false);
+    }
   }, [
     batchId,
     fetchBatchById,
@@ -137,24 +120,32 @@ const BatchDetailView: React.FC<BatchDetailViewProps> = ({ batchId }) => {
     fetchTemperatureHistory,
     assessQuality,
     isMounted,
-    retryCount,
+    retryAttempt,
+    dataLoaded,
+    MAX_RETRIES,
   ]);
 
-  // Effect for automatic retry with increasing delay
+  // Effect to load data once on mount or when batchId changes
   useEffect(() => {
-    if (retryCount > 0 && retryCount <= MAX_RETRIES && isMounted) {
-      const retryDelay = 1000 * Math.pow(2, retryCount - 1); // Exponential backoff
-      console.log(`Scheduling retry ${retryCount} in ${retryDelay}ms...`);
+    if (isMounted && !dataLoaded) {
+      loadBatchData();
+    }
+  }, [isMounted, loadBatchData, dataLoaded]);
+
+  // Effect for retry with delay (only runs when retryAttempt changes)
+  useEffect(() => {
+    if (retryAttempt > 0 && !dataLoaded) {
+      const retryDelay = 2000 * retryAttempt; // Increasing delay for each retry
 
       const timeoutId = setTimeout(() => {
-        console.log(`Executing retry ${retryCount}...`);
-        // This empty update will trigger the main data loading effect
-        setRetryCount(retryCount);
+        if (isMounted && !dataLoaded) {
+          loadBatchData();
+        }
       }, retryDelay);
 
       return () => clearTimeout(timeoutId);
     }
-  }, [retryCount, isMounted]);
+  }, [retryAttempt, loadBatchData, isMounted, dataLoaded]);
 
   const handleCompleteBatch = async () => {
     if (!isMounted) return;
@@ -176,31 +167,33 @@ const BatchDetailView: React.FC<BatchDetailViewProps> = ({ batchId }) => {
     }
   };
 
-  const handleManualRetry = async () => {
+  const handleManualRetry = () => {
+    setDataLoaded(false);
+    setRetryAttempt(0);
     setIsLoading(true);
     setLoadError(null);
-    setRetryCount(0);
+    loadBatchData();
   };
 
   const handleBackToBatches = () => {
     router.push("/batches");
   };
 
-  // Show loading state while data is being fetched
+  // Show loading state
   if (!isMounted || isLoading || batchLoading) {
     return (
       <div className="text-center py-10">
         <p className="mb-4">Loading batch details...</p>
-        {retryCount > 0 && (
+        {retryAttempt > 0 && (
           <p className="text-sm text-gray-500">
-            Retry attempt {retryCount} of {MAX_RETRIES}...
+            Retry attempt {retryAttempt} of {MAX_RETRIES}...
           </p>
         )}
       </div>
     );
   }
 
-  // Show error state if there was an error loading the batch
+  // Show error state
   if (loadError || batchError) {
     return (
       <div className="text-center py-10">
@@ -221,13 +214,11 @@ const BatchDetailView: React.FC<BatchDetailViewProps> = ({ batchId }) => {
     );
   }
 
-  // Show not found state if the batch doesn't exist
+  // Show not found state
   if (!selectedBatch) {
     return (
       <div className="text-center py-10">
-        <p className="mb-4">
-          Batch #{batchId} not found. The requested batch may not exist.
-        </p>
+        <p className="mb-4">Batch #{batchId} not found</p>
         <div className="flex flex-col items-center gap-4">
           <Button onClick={handleManualRetry} className="w-40">
             Retry
@@ -247,7 +238,7 @@ const BatchDetailView: React.FC<BatchDetailViewProps> = ({ batchId }) => {
   // Get batch details from either batch report or selected batch
   const batchDetails = batchReport?.batch_details || selectedBatch;
 
-  // Initialize stats with safe defaults in case temperature history is missing
+  // Initialize stats with safe defaults
   const stats = temperatureHistory?.length
     ? getBreachStatistics(temperatureHistory)
     : {
@@ -258,7 +249,7 @@ const BatchDetailView: React.FC<BatchDetailViewProps> = ({ batchId }) => {
         averageTemperature: 0,
       };
 
-  // Get quality information with safe fallbacks
+  // Get quality information
   const qualityInfo = getQualityCategory(
     qualityAssessment?.quality_score || batchDetails.quality_score || 0
   );
