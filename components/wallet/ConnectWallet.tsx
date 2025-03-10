@@ -167,48 +167,44 @@ export default function ConnectWallet() {
     <div className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-4 py-2 bg-gray-800 rounded-lg hover:bg-gray-700 transition-all text-white"
+        className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-all relative"
       >
-        <User className="w-5 h-5" />
-        <span className="font-medium hidden sm:inline">
-          {formatAddress(address)}
-        </span>
-        {!isCorrectNetwork && (
-          <AlertTriangle className="w-4 h-4 text-yellow-400" />
+        <User className="w-5 h-5 text-gray-600" />
+        {!isCorrectNetwork ? (
+          <div className="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-yellow-500 border-2 border-white" />
+        ) : (
+          <div className="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-green-500 border-2 border-white" />
         )}
-        <ChevronDown className="w-4 h-4" />
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-72 bg-gray-800 rounded-xl shadow-xl border border-gray-700 p-2 z-50">
+        <div className="absolute right-0 mt-2 w-72 bg-white rounded-xl shadow-xl border border-gray-100 p-2 z-50">
           <div className="p-3 space-y-3">
             <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-400">
+              <span className="text-sm text-gray-500">
                 Connected with MetaMask
               </span>
               <button
                 onClick={() => disconnect()}
-                className="flex items-center gap-1 text-red-400 hover:text-red-300 text-sm font-medium"
+                className="flex items-center gap-1 text-red-500 hover:text-red-600 text-sm font-medium"
               >
                 <Power className="w-4 h-4" />
                 Disconnect
               </button>
             </div>
 
-            <div className="flex items-center justify-between bg-gray-700 p-3 rounded-lg">
+            <div className="flex items-center justify-between bg-gray-50 p-3 rounded-lg">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-blue-900 flex items-center justify-center">
-                  <Wallet className="w-4 h-4 text-blue-400" />
+                <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+                  <Wallet className="w-4 h-4 text-blue-600" />
                 </div>
                 <div>
-                  <p className="font-medium text-white">
+                  <p className="font-medium">
                     {address ? formatAddress(address) : ""}
                   </p>
-                  <p className="text-sm text-gray-400">
+                  <p className="text-sm text-gray-500">
                     {balance?.formatted
-                      ? `${parseFloat(balance.formatted).toFixed(4)} ${
-                          balance.symbol
-                        }`
+                      ? `${parseFloat(balance.formatted).toFixed(4)} ${balance.symbol}`
                       : "Loading..."}
                   </p>
                 </div>
@@ -218,39 +214,36 @@ export default function ConnectWallet() {
             <div className="flex gap-2">
               <button
                 onClick={copyAddress}
-                className="flex items-center gap-1 px-3 py-2 text-sm text-gray-300 hover:text-white bg-gray-700 rounded-lg flex-1"
+                className="flex items-center gap-1 px-3 py-2 text-sm text-gray-600 hover:text-gray-900 bg-gray-50 rounded-lg flex-1"
               >
                 <Copy className="w-4 h-4" />
                 Copy Address
               </button>
               <button
                 onClick={openExplorer}
-                className="flex items-center gap-1 px-3 py-2 text-sm text-gray-300 hover:text-white bg-gray-700 rounded-lg flex-1"
+                className="flex items-center gap-1 px-3 py-2 text-sm text-gray-600 hover:text-gray-900 bg-gray-50 rounded-lg flex-1"
               >
                 <ExternalLink className="w-4 h-4" />
-                View Explorer
+                View on Explorer
               </button>
             </div>
 
-            <div className="pt-2 border-t border-gray-700">
+            <div className="pt-2 border-t">
               <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-400">Network</span>
-                <div className="flex items-center">
-                  {isCorrectNetwork ? (
-                    <span className="text-green-400 font-medium flex items-center">
-                      <span className="w-2 h-2 bg-green-400 rounded-full mr-2"></span>
-                      {CHAIN_NAMES[chainId] || `Chain ${chainId}`}
-                    </span>
-                  ) : (
-                    <button
-                      onClick={handleSwitchNetwork}
-                      className="text-yellow-400 font-medium flex items-center hover:text-yellow-300"
-                    >
-                      <AlertTriangle className="w-4 h-4 mr-1" />
-                      Switch to Sonic Testnet
-                    </button>
-                  )}
-                </div>
+                <span className="text-gray-500">Network</span>
+                {isCorrectNetwork ? (
+                  <span className="font-medium">
+                    {CHAIN_NAMES[chainId] || `Chain ${chainId}`}
+                  </span>
+                ) : (
+                  <button
+                    onClick={handleSwitchNetwork}
+                    className="flex items-center gap-1 text-yellow-600 hover:text-yellow-700 font-medium"
+                  >
+                    <AlertTriangle className="w-4 h-4" />
+                    Switch to Sonic Testnet
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -259,3 +252,4 @@ export default function ConnectWallet() {
     </div>
   );
 }
+

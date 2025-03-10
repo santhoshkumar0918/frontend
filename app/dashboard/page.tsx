@@ -36,7 +36,6 @@ export default function Dashboard() {
     }
 
     loadData();
-    // Set up a refresh interval
     const intervalId = setInterval(() => {
       fetchHealthMetrics();
     }, 30000); // Refresh every 30 seconds
